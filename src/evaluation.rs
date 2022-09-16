@@ -1,6 +1,4 @@
-pub mod board;
-
-use board::*;
+use crate::board::*;
 pub fn eval_func(board: &Board) -> i8 {
     // maximizing bool for, now, should be changed
     // +ve for black winning

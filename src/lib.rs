@@ -1,9 +1,11 @@
-pub mod othello_lib;
+pub mod board;
+pub mod evaluation;
+pub mod gui;
 #[allow(dead_code)]
 #[cfg(test)]
 #[test]
 fn move_generation() {
-    use othello_lib::board::*;
+    use board::*;
     // Use https://tearth.dev/bitboard-viewer/ to view the positions
     let to_move = Pieces {
         bits: 0b1000000001000000000000000000000000000,

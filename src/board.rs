@@ -38,6 +38,9 @@ impl std::fmt::Debug for Board {
             true => (self.to_move.bits, self.waiting.bits),
             false => (self.waiting.bits, self.to_move.bits),
         };
+        print!("  1 2 3 4 5 6 7 8\n1");
+        use std::io::Write;
+        std::io::stdout().flush().expect("Flush failed");
         for i in 0..64 {
             let (bbit, wbit) = ((black >> i) & 1, (white >> i) & 1);
             use colored::Colorize;
@@ -46,11 +49,15 @@ impl std::fmt::Debug for Board {
             } else if wbit == 1 {
                 "██".white()
             } else {
-                "██".green()
+                "██".color(colored::Color::TrueColor {
+                    r: 18,
+                    g: 140 + 15 * ((i + i / 8) & 1),
+                    b: 45,
+                })
             };
             write!(f, "{}", next_str).expect("Formatting of Board failed");
             if (i + 1) & 7 == 0 && i != 63 {
-                write!(f, "\n").expect("Formatting of Board failed");
+                write!(f, "{}", format!("\n{}", i / 8 + 2)).expect("Formatting of Board failed");
             }
         }
         write!(f, "")
@@ -128,5 +135,16 @@ impl Board {
             BoardState::Ongoing
         };
         moves
+    }
+
+    pub fn safe_make_move(&mut self, bit: u64) -> Result<Pieces, String> {
+        let mut moves = self.each_move();
+        match moves.any(|x| x == bit) {
+            true => {
+                self.make_move(bit);
+                Ok(moves)
+            }
+            false => Err(String::from("Move is not legal")),
+        }
     }
 }
