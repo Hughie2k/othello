@@ -38,13 +38,20 @@ impl std::fmt::Debug for Board {
             true => (self.to_move.bits, self.waiting.bits),
             false => (self.waiting.bits, self.to_move.bits),
         };
+        let moves = self.each_move();
         print!("  1 2 3 4 5 6 7 8\n1");
         use std::io::Write;
         std::io::stdout().flush().expect("Flush failed");
         for i in 0..64 {
             let (bbit, wbit) = ((black >> i) & 1, (white >> i) & 1);
             use colored::Colorize;
-            let next_str = if bbit == 1 {
+            let next_str = if moves.clone().any(|x| (x >> i) & 1 == 1u64) {
+                "██".color(colored::Color::TrueColor {
+                    r: 3,
+                    g: 240 + 10 * ((i + i / 8) & 1),
+                    b: 252,
+                })
+            } else if bbit == 1 {
                 "██".black()
             } else if wbit == 1 {
                 "██".white()

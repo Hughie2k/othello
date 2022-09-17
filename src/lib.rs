@@ -1,4 +1,5 @@
 pub mod board;
+pub mod cli;
 pub mod evaluation;
 pub mod gui;
 #[allow(dead_code)]
