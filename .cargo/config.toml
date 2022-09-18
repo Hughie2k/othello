@@ -1,2 +1,2 @@
-[build]
-rustflags = ["-Ctarget-feature=+crt-static"]
+# [build]
+# rustflags = ["-Ctarget-feature=+crt-static"]

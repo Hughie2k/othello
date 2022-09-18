@@ -131,6 +131,7 @@ impl Board {
                     Ordering::Greater => BoardState::Won,
                     Ordering::Less => {
                         std::mem::swap(&mut self.to_move, &mut self.waiting);
+                        self.black_moving ^= true;
                         BoardState::Won
                     }
                     Ordering::Equal => BoardState::Drawn,

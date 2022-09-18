@@ -28,7 +28,7 @@ pub fn play() {
                 match board.black_moving {
                     true => {
                         let bit =
-                            crate::evaluation::minimax(crate::evaluation::eval_func, &board, 6);
+                            crate::evaluation::minimax(crate::evaluation::better_eval, &board, 10);
                         board.make_move(bit);
                     }
                     false => {
