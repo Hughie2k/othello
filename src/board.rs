@@ -72,7 +72,8 @@ impl std::fmt::Debug for Board {
 }
 
 impl Board {
-    const DIRECTIONS: [(i8, u64); 8] = [
+    // The second item of each tuples are the squares where you shouldn't shl from for each dir
+    pub const DIRECTIONS: [(i8, u64); 8] = [
         (8, 0),
         (9, 0x8080808080808080),
         (1, 0x8080808080808080),
@@ -97,7 +98,7 @@ impl Board {
         Pieces { bits: moves }
     }
     pub fn make_move(&mut self, bit: u64) -> Pieces {
-        // Returning the number of pieces for optimization
+        // Returning the moves because the caller often needs it anyway
         let safe_shl = |a: u64, b: i8| if b > 0 { a << b } else { a >> (-b) };
         for (dir, guard) in Board::DIRECTIONS {
             let mut line = 0u64;
@@ -154,5 +155,20 @@ impl Board {
             }
             false => Err(String::from("Move is not legal")),
         }
+    }
+
+    pub fn children(&self, moves: &Pieces) -> Vec<(Board, Pieces)> {
+        // Moves is a parameter as the caller will often already have calculated it
+        // Returning both positions and the available moves as the latter
+        // must be calculated and I don't want to waste the computation
+        let kids: Vec<_> = moves
+            .clone()
+            .map(|bit| {
+                let mut copy = self.clone();
+                let next = copy.make_move(bit);
+                (copy, next)
+            })
+            .collect();
+        kids
     }
 }

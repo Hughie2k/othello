@@ -15,95 +15,130 @@ pub fn eval_func(board: &Board) -> i8 {
 }
 
 pub fn minimax<T: Ord + Clone + num::Bounded>(
-    eval: fn(&Board) -> T,
+    eval: fn(&Board, &Pieces) -> T, // Static evaluation function, although static is not enforcable
+    (board, moves): &(Board, Pieces),
+    depth: u8,    // How many moves ahead to we want to consider?
+    mut alpha: T, // The evaluation of the best move found so far for black
+    mut beta: T,  // alpha, but for white
+) -> T {
+    if depth == 0 || moves.bits == 0 {
+        return eval(board, moves);
+    }
+    let children = board.children(moves);
+    // This match statement avoids code duplication, where the same function is written almost identically for both colours
+    let (mut best_eval, cmp) = match board.black_moving {
+        true => (alpha.clone(), T::max as fn(T, T) -> T),
+        false => (beta.clone(), T::min as fn(T, T) -> T),
+    };
+    for (next_board, next_moves) in children {
+        best_eval = cmp(
+            best_eval,
+            minimax(
+                eval,
+                &(next_board, next_moves),
+                depth - 1,
+                alpha.clone(),
+                beta.clone(),
+            ),
+        );
+        if board.black_moving {
+            alpha = best_eval.clone();
+        } else {
+            beta = best_eval.clone();
+        }
+        // Good positions for black give greater evaluations, opposite for white
+        // Consider alpha and beta, the best evaluation for black so far and the best for white so far
+        // If we compare the bes&mut t moves found so far for black and white and we find that the opposition
+        // Can force a better position for them than the one we are currently considering, we need not consider
+        // Any more children of this position as the opposition can and should avoid this position entirely
+        // If they happen not to do that, that's all the better for us as they are playing sub-optimally
+        if beta <= alpha {
+            //println!("Prune!");
+            break;
+        }
+    }
+    best_eval
+}
+
+pub fn best_move<T: Ord + Clone + num::Bounded>(
+    eval: fn(&Board, &Pieces) -> T,
     board: &Board,
     depth: u8,
 ) -> u64 {
-    fn recurse_eval<T: Ord + Clone + num::Bounded>(
-        eval: fn(&Board) -> T,
-        board: &Board,
-        depth: u8,
-        moves: Pieces,
-        mut alpha: T,
-        mut beta: T,
-    ) -> T {
-        if depth == 0 {
-            eval(board)
-        } else {
-            if moves.bits == 0 {
-                return eval(board);
-            }
-            let mut boards = vec![board.clone(); moves.clone().count()];
-            let mut evaluations: Vec<T> = Vec::new();
-            for (board, move_bit) in boards.iter_mut().zip(moves.clone()) {
-                let moves = board.make_move(move_bit);
-                let valuation =
-                    recurse_eval(eval, board, depth - 1, moves, alpha.clone(), beta.clone());
-                if board.black_moving {
-                    alpha = alpha.max(valuation.clone());
-                } else {
-                    beta = beta.min(valuation.clone());
-                }
-                evaluations.push(valuation);
-                if alpha > beta {
-                    break;
-                }
-            }
-            if board.black_moving {
-                evaluations.iter().max().unwrap().clone()
-            } else {
-                evaluations.iter().min().unwrap().clone()
-            }
-        }
-    }
     let moves = board.each_move();
-    if moves.bits == 0 {
-        panic!("{:?} - No moves. Fix the code!", board.board_state);
-    }
-    let mut boards = vec![board.clone(); moves.clone().count()];
-    let mut evaluations: Vec<(T, u64)> = Vec::new();
-    for (board, move_bit) in boards.iter_mut().zip(moves.clone()) {
-        let moves = board.make_move(move_bit);
-        evaluations.push((
-            recurse_eval(eval, board, depth, moves, T::min_value(), T::max_value()),
-            move_bit,
-        ));
-    }
     if board.black_moving {
-        evaluations
+        board
+            .children(&moves)
             .iter()
-            .max_by_key(|(evaluation, _)| evaluation)
+            .zip(moves)
+            .map(|(pos, move_bit)| {
+                (
+                    minimax(eval, pos, depth - 1, T::min_value(), T::max_value()),
+                    move_bit,
+                )
+            })
+            .collect::<Vec<_>>()
+            .iter()
+            .max_by_key(|(value, _)| value)
             .unwrap()
             .1
     } else {
-        evaluations
+        board
+            .children(&moves)
             .iter()
-            .min_by_key(|(evaluation, _)| evaluation)
+            .zip(moves)
+            .map(|(pos, move_bit)| {
+                (
+                    minimax(eval, pos, depth - 1, T::min_value(), T::max_value()),
+                    move_bit,
+                )
+            })
+            .collect::<Vec<_>>()
+            .iter()
+            .min_by_key(|(value, _)| value)
             .unwrap()
             .1
     }
 }
 
-pub fn better_eval(board: &Board) -> i8 {
-    let c = board.black_moving as i8 * 2 - 1;
+fn frontier(board: &Board) -> (Pieces, Pieces) {
+    let (mut moving_front, mut waiting_front) = (0u64, 0u64);
+    let empty = !(board.to_move.bits | board.waiting.bits);
+    let safe_shl = |a: u64, b: i8| if b > 0 { a << b } else { a >> (-b) };
+    for (dir, guard) in Board::DIRECTIONS {
+        moving_front |= safe_shl(board.to_move.bits & !guard, dir) & empty;
+        waiting_front |= safe_shl(board.waiting.bits & !guard, dir) & empty;
+    }
+    (
+        Pieces { bits: moving_front },
+        Pieces {
+            bits: waiting_front,
+        },
+    )
+}
+
+pub fn better_eval(board: &Board, moves: &Pieces) -> i16 {
+    let c = board.black_moving as i16 * 2 - 1;
     use BoardState::*;
     match &board.board_state {
-        Won => i8::MAX * c,
+        Won => i16::MAX * c,
         Drawn => 4 * c, // completely arbitrary
         Ongoing => {
-            c * (board.each_move().count() as i8
-                + ((board.to_move.clone().count() as i8 - board.waiting.clone().count() as i8)
-                    >> 2)
-                + (((Pieces {
+            let corner_balance = c
+                * (Pieces {
                     bits: board.to_move.bits & 0x8100000000000081,
                 }
-                .count() as i8)
-                    << 2)
-                    - (Pieces {
+                .count() as i16
+                    - Pieces {
                         bits: board.waiting.bits & 0x8100000000000081,
                     }
-                    .count() as i8)
-                    << 2))
+                    .count() as i16);
+            let material_balance =
+                c * (board.to_move.clone().count() as i16 - board.waiting.clone().count() as i16);
+            let (moving_front, waiting_front) = frontier(board);
+            let frontier_balance = c * (moving_front.count() as i16 - waiting_front.count() as i16);
+            let move_count = c * moves.clone().count() as i16;
+            corner_balance * 4000 + material_balance - frontier_balance * 10 + move_count * 1000
         }
     }
 }
@@ -125,25 +160,25 @@ fn cmp_eval() {
         black_moving: true,
         board_state: Ongoing,
     };
-    fn eval1(board: &Board) -> i8 {
+    fn eval1(board: &Board, moves: &Pieces) -> i8 {
         let c = board.black_moving as i8 * 2 - 1;
         match board.board_state {
             Won => i8::MAX * c,
             Drawn => 4 * c, // completely arbitrary, can be improved
             Ongoing => {
-                c * (board.each_move().count() as i8
+                c * (moves.clone().count() as i8
                     + ((board.to_move.clone().count() as i8 - board.waiting.clone().count() as i8)
                         >> 2))
             }
         }
     }
-    fn eval2(board: &Board) -> i8 {
+    fn eval2(board: &Board, moves: &Pieces) -> i8 {
         let c = board.black_moving as i8 * 2 - 1;
         match board.board_state {
             Won => i8::MAX * c,
             Drawn => 4 * c, // completely arbitrary, can be improved
             Ongoing => {
-                c * (board.each_move().count() as i8
+                c * (moves.clone().count() as i8
                     + ((board.to_move.clone().count() as i8 - board.waiting.clone().count() as i8)
                         >> 2)
                     + (((Pieces {
@@ -176,10 +211,10 @@ fn cmp_eval() {
             }
             Ongoing => match board.black_moving {
                 true => {
-                    board.make_move(minimax(eval2, &board, 3));
+                    board.make_move(best_move(eval2, &board, 5));
                 }
                 false => {
-                    board.make_move(minimax(eval1, &board, 9));
+                    board.make_move(best_move(better_eval, &board, 4));
                 }
             },
         }
