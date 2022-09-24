@@ -29,6 +29,21 @@ pub struct Board {
     pub board_state: BoardState,
 }
 
+impl Default for Board {
+    fn default() -> Self {
+        Board {
+            black_moving: true,
+            board_state: BoardState::Ongoing,
+            waiting: Pieces {
+                bits: 0b1000000001000000000000000000000000000,
+            },
+            to_move: Pieces {
+                bits: 0b100000010000000000000000000000000000,
+            },
+        }
+    }
+}
+
 impl std::fmt::Debug for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.to_move.bits & self.waiting.bits != 0 {
