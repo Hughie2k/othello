@@ -18,11 +18,11 @@ impl eframe::App for Board {
                     let (response, mut painter) =
                         ui.allocate_painter(ui.min_size(), egui::Sense::click());
                     let cell_size = ui.min_size() / 8.0;
-                    println!(
-                        "Cell width: {}, Cell height: {}",
-                        ui.min_size().x,
-                        ui.min_size().y
-                    );
+                    // println!(
+                    //     "Cell width: {}, Cell height: {}",
+                    //     ui.min_size().x,
+                    //     ui.min_size().y
+                    // );
                     if !self.black_moving {
                         self.make_move(crate::evaluation::best_move(
                             crate::evaluation::better_eval,
@@ -35,7 +35,7 @@ impl eframe::App for Board {
                             let y = (y as u64) / cell_size.y as u64;
                             let bit = 1 << (x + y * 8);
                             self.safe_make_move(bit);
-                            println!("x = {x}, y = {y}");
+                            // println!("x = {x}, y = {y}");
                         }
                     }
                     (response, painter)
