@@ -11,11 +11,11 @@ pub fn run() {
 }
 
 impl eframe::App for Board {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             let (_response, mut painter) = match self.board_state {
                 board::BoardState::Ongoing => {
-                    let (response, mut painter) =
+                    let (response, painter) =
                         ui.allocate_painter(ui.min_size(), egui::Sense::click());
                     let cell_size = ui.min_size() / 8.0;
                     // println!(
@@ -41,9 +41,13 @@ impl eframe::App for Board {
                     (response, painter)
                 }
                 board::BoardState::Drawn => {
-                    if ui.button("Draw - Retry?").clicked() {
-                        *self = Board::default();
-                    }
+                    ui.vertical_centered(|i| {
+                        i.horizontal_centered(|inter| {
+                            if inter.button("Draw - Retry?").clicked() {
+                                *self = Board::default();
+                            }
+                        })
+                    });
                     ui.allocate_painter(ui.min_size(), egui::Sense::click())
                 }
                 board::BoardState::Won => {
@@ -51,16 +55,20 @@ impl eframe::App for Board {
                         true => "Black",
                         false => "White",
                     };
-                    if ui
-                        .button(format!(
-                            "{s} won! The winner had {} pieces, the loser had {} - Retry?",
-                            self.to_move.clone().count(),
-                            self.waiting.clone().count()
-                        ))
-                        .clicked()
-                    {
-                        *self = Board::default();
-                    }
+                    ui.vertical_centered(|i| {
+                        i.horizontal_centered(|inter| {
+                            if inter
+                                .button(format!(
+                                    "{s} won! The winner had {} pieces, the loser had {} - Retry?",
+                                    self.to_move.clone().count(),
+                                    self.waiting.clone().count()
+                                ))
+                                .clicked()
+                            {
+                                *self = Board::default();
+                            }
+                        })
+                    });
                     ui.allocate_painter(ui.min_size(), egui::Sense::click())
                 }
             };

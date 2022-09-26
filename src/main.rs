@@ -1,4 +1,3 @@
-use local_ip_address::linux::local_ip;
 fn main() {
     // if std::env::consts::OS == "windows" {
     //     unsafe {
