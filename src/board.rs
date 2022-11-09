@@ -1,13 +1,15 @@
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Copy)]
 pub enum BoardState {
     Won, // to_move has won, so we don't need a `BoardState::Lost`
     Drawn,
     Ongoing,
 }
-#[derive(Clone)]
+
+#[derive(Clone, Copy)]
 pub struct Pieces {
     pub bits: u64,
 }
+
 impl Iterator for Pieces {
     type Item = u64;
     fn next(&mut self) -> Option<Self::Item> {
@@ -21,7 +23,7 @@ impl Iterator for Pieces {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Board {
     pub to_move: Pieces,
     pub waiting: Pieces,

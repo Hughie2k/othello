@@ -80,7 +80,7 @@ pub fn best_move<T: Ord + Clone + num::Bounded>(
             .collect::<Vec<_>>()
             .iter()
             .max_by_key(|(value, _)| value)
-            .unwrap()
+            .expect("Moves should exist")
             .1
     } else {
         board
@@ -96,7 +96,7 @@ pub fn best_move<T: Ord + Clone + num::Bounded>(
             .collect::<Vec<_>>()
             .iter()
             .min_by_key(|(value, _)| value)
-            .unwrap()
+            .expect("Moves should exist")
             .1
     }
 }

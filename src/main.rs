@@ -14,5 +14,5 @@ fn main() {
     //     }
     // }
 
-    othello::gui::run();
+    //othello::gui::run();
 }

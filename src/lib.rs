@@ -1,8 +1,6 @@
 pub mod board;
 pub mod cli;
 pub mod evaluation;
-pub mod gui;
-pub mod net;
 #[allow(dead_code)]
 #[cfg(test)]
 #[test]
