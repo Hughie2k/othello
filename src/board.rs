@@ -178,14 +178,13 @@ impl Board {
         // Moves is a parameter as the caller will often already have calculated it
         // Returning both positions and the available moves as the latter
         // must be calculated and I don't want to waste the computation
-        let kids: Vec<_> = moves
+        moves
             .clone()
             .map(|bit| {
                 let mut copy = self.clone();
                 let next = copy.make_move(bit);
                 (copy, next)
             })
-            .collect();
-        kids
+            .collect()
     }
 }
